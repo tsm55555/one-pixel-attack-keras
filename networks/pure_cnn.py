@@ -3,7 +3,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 import keras
 from keras.models import Sequential
-from keras.optimizers import Adam, SGD
+from tensorflow.keras.optimizers import Adam, SGD
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler, TensorBoard
 from keras.constraints import maxnorm
 from keras.models import load_model

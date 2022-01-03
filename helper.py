@@ -109,7 +109,8 @@ def plot_images(images, labels_true, class_names, labels_pred=None,
         ax.set_yticks([])
 
     # Show the plot
-    plt.show()
+    #plt.show()
+    plt.savefig("/home/tsm62803/my_code/one-pixel-attack-keras/networks/results", bbox_inches='tight') 
 
 
 def plot_model(model_details):
@@ -141,7 +142,7 @@ def plot_model(model_details):
 def visualize_attack(df, class_names):
     _, (x_test, _) = cifar10.load_data()
 
-    results = df[df.success].sample(9)
+    results = df[df.success].sample(9, replace=True)
 
     z = zip(results.perturbation, x_test[results.image])
     images = np.array([perturb_image(p, img)[0]

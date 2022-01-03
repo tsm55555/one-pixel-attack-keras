@@ -2,7 +2,7 @@ import keras
 import numpy as np
 from keras.datasets import cifar10
 from keras.preprocessing.image import ImageDataGenerator
-from keras.layers.normalization import BatchNormalization
+from tensorflow.keras.layers import BatchNormalization
 from keras.layers import Conv2D, Dense, Input, add, Activation, GlobalAveragePooling2D
 from keras.callbacks import LearningRateScheduler, TensorBoard, ModelCheckpoint
 from keras.models import Model, load_model
@@ -118,8 +118,8 @@ class ResNet:
     def train(self):
         # load data
         (x_train, y_train), (x_test, y_test) = cifar10.load_data()
-        y_train = keras.utils.to_categorical(y_train, self.num_classes)
-        y_test = keras.utils.to_categorical(y_test, self.num_classes)
+        y_train = keras.utils.np_utils.to_categorical(y_train, self.num_classes)
+        y_test = keras.utils.np_utils.to_categorical(y_test, self.num_classes)
         
         # color preprocessing
         x_train, x_test = self.color_preprocessing(x_train, x_test)
@@ -131,7 +131,7 @@ class ResNet:
         resnet.summary()
 
         # set optimizer
-        sgd = optimizers.SGD(lr=.1, momentum=0.9, nesterov=True)
+        sgd = optimizers.gradient_descent_v2.SGD(lr=.1, momentum=0.9, nesterov=True)
         resnet.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
 
         # set callback

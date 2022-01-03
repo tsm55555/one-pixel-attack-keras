@@ -6,20 +6,20 @@ import numpy as np
 import pandas as pd
 from keras.datasets import cifar10
 import pickle
-
+import tensorflow as tf
+import time
 # Custom Networks
-from networks.lenet import LeNet
-from networks.pure_cnn import PureCnn
-from networks.network_in_network import NetworkInNetwork
+# from networks.lenet import LeNet
+# from networks.pure_cnn import PureCnn
+#from networks.network_in_network import NetworkInNetwork
 from networks.resnet import ResNet
-from networks.densenet import DenseNet
-from networks.wide_resnet import WideResNet
-from networks.capsnet import CapsNet
+# from networks.densenet import DenseNet
+# from networks.wide_resnet import WideResNet
+# from networks.capsnet import CapsNet
 
 # Helper functions
 from differential_evolution import differential_evolution
 import helper
-
 
 class PixelAttacker:
     def __init__(self, models, data, class_names, dimensions=(32, 32)):
@@ -103,7 +103,7 @@ class PixelAttacker:
         for model in models:
             model_results = []
             valid_imgs = self.correct_imgs[self.correct_imgs.name == model.name].img
-            img_samples = np.random.choice(valid_imgs, samples)
+            img_samples = np.random.choice(valid_imgs, samples, replace=False)
 
             for pixel_count in pixels:
                 for i, img in enumerate(img_samples):
@@ -127,13 +127,13 @@ class PixelAttacker:
 
 if __name__ == '__main__':
     model_defs = {
-        'lenet': LeNet,
-        'pure_cnn': PureCnn,
-        'net_in_net': NetworkInNetwork,
+        # 'lenet': LeNet,
+        # 'pure_cnn': PureCnn,
+        # 'net_in_net': NetworkInNetwork,
         'resnet': ResNet,
-        'densenet': DenseNet,
-        'wide_resnet': WideResNet,
-        'capsnet': CapsNet
+        # 'densenet': DenseNet,
+        # 'wide_resnet': WideResNet,
+        # 'capsnet': CapsNet
     }
 
     parser = argparse.ArgumentParser(description='Attack models on Cifar10')
@@ -161,16 +161,18 @@ if __name__ == '__main__':
     attacker = PixelAttacker(models, test, class_names)
 
     print('Starting attack')
-
+    start = time.time()
     results = attacker.attack_all(models, samples=args.samples, pixels=args.pixels, targeted=args.targeted,
                                   maxiter=args.maxiter, popsize=args.popsize, verbose=args.verbose)
-
+    end = time.time()
+    print("training time: ", end - start)
     columns = ['model', 'pixels', 'image', 'true', 'predicted', 'success', 'cdiff', 'prior_probs', 'predicted_probs',
                'perturbation']
     results_table = pd.DataFrame(results, columns=columns)
 
-    print(results_table[['model', 'pixels', 'image', 'true', 'predicted', 'success']])
-
+    #print(results_table[['model', 'pixels', 'image', 'true', 'predicted', 'success']])
+    accuracy = helper.attack_stats(results_table, models, attacker.network_stats)
+    print(accuracy)
     print('Saving to', args.save)
     with open(args.save, 'wb') as file:
-        pickle.dump(results, file)
+        pickle.dump(accuracy, file)
