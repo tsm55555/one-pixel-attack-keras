@@ -5,9 +5,11 @@ import argparse
 import numpy as np
 import pandas as pd
 from keras.datasets import cifar10
+from matplotlib import pyplot as plt
 import pickle
 import tensorflow as tf
 import time
+import os
 # Custom Networks
 # from networks.lenet import LeNet
 # from networks.pure_cnn import PureCnn
@@ -21,6 +23,19 @@ from networks.resnet import ResNet
 from differential_evolution import differential_evolution
 import helper
 
+# Run OMPI_MCA_rmaps_base_oversubscribe=yes python test_evolutionary.py
+os.environ["CUDA_VISIBLE_DEVICES"]="6,7"
+#---- GPU memory management --------------------------------
+gpus = tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+  tf.config.experimental.set_memory_growth(gpu, True)
+
+count = 0
+ssim = 0
+psnr = 0
+success_rate = 0
+confidence = 0
+all_confidence = []
 class PixelAttacker:
     def __init__(self, models, data, class_names, dimensions=(32, 32)):
         # Load data and model
@@ -54,9 +69,9 @@ class PixelAttacker:
         if ((targeted_attack and predicted_class == target_class) or
                 (not targeted_attack and predicted_class != target_class)):
             return True
-
+            
     def attack(self, img_id, model, target=None, pixel_count=1,
-               maxiter=75, popsize=400, verbose=False, plot=False):
+               maxiter=75, popsize=400, verbose=False, plot=True):
         # Change the target class based on whether this is a targeted attack or not
         targeted_attack = target is not None
         target_class = target if targeted_attack else self.y_test[img_id, 0]
@@ -80,7 +95,7 @@ class PixelAttacker:
         attack_result = differential_evolution(
             predict_fn, bounds, maxiter=maxiter, popsize=popmul,
             recombination=1, atol=-1, callback=callback_fn, polish=False)
-
+        print("attack_result", attack_result.x)
         # Calculate some useful statistics to return from this function
         attack_image = helper.perturb_image(attack_result.x, self.x_test[img_id])[0]
         prior_probs = model.predict(np.array([self.x_test[img_id]]))[0]
@@ -89,11 +104,22 @@ class PixelAttacker:
         actual_class = self.y_test[img_id, 0]
         success = predicted_class != actual_class
         cdiff = prior_probs[actual_class] - predicted_probs[actual_class]
-
         # Show the best attempt at a solution (successful or not)
-        if plot:
-            helper.plot_image(attack_image, actual_class, self.class_names, predicted_class)
-
+        if plot and success:
+            # plt.imshow(self.x_test[img_id].astype(np.uint8))
+            # plt.axis("off")
+            # plt.savefig("/home/tsm62803/my_code/one-pixel-attack-keras/images/original.png", bbox_inches='tight')
+            # helper.plot_image(attack_image, actual_class, self.class_names, predicted_class)
+            print(self.x_test[img_id].shape)
+            print(attack_image.shape)
+            global count, ssim, psnr, success_rate, confidence, all_confidence
+            s, p = helper.compare_images(self.x_test[img_id], attack_image, "/home/tsm62803/my_code/one-pixel-attack-keras/images/compare/" + str(count), actual_class, predicted_class, prior_probs, predicted_probs)
+            ssim += s
+            psnr += p
+            success_rate += 1
+            all_confidence.append(np.amax(predicted_probs))
+            confidence += np.amax(predicted_probs)
+            count += 1
         return [model.name, pixel_count, img_id, actual_class, predicted_class, success, cdiff, prior_probs,
                 predicted_probs, attack_result.x]
 
@@ -173,6 +199,11 @@ if __name__ == '__main__':
     #print(results_table[['model', 'pixels', 'image', 'true', 'predicted', 'success']])
     accuracy = helper.attack_stats(results_table, models, attacker.network_stats)
     print(accuracy)
-    print('Saving to', args.save)
-    with open(args.save, 'wb') as file:
-        pickle.dump(accuracy, file)
+    if success_rate != 0:
+        print("avg ssim: ", ssim/success_rate)
+        print("avg psnr", psnr/success_rate)
+        print("avg confidence", confidence/success_rate)
+    # print("all confidence", all_confidence)
+    # print('Saving to', args.save)
+    # with open(args.save, 'wb') as file:
+    #     pickle.dump(accuracy, file)

@@ -4,11 +4,69 @@ import pickle
 import numpy as np
 from keras.datasets import cifar10
 from keras.utils import np_utils
-from matplotlib import pyplot as plt
 import pandas as pd
 import requests
 from tqdm import tqdm
+from skimage.metrics import structural_similarity as ssim
+import matplotlib.pyplot as plt
+from math import log10, sqrt
+import os
 
+def mse(original, adv):
+  err = np.sum((original.astype("float") - adv.astype("float")) ** 2)
+  err /= float(original.shape[0] * original.shape[1])
+  return err
+
+def compare_images(original, adv, path, label, label_adv, prob, prob_adv):
+	# compute the mean squared error and structural similarity
+	# index for the images
+    names = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
+
+    # Original =  255 * original
+    # Adv = 255 * adv
+    original = original.astype(np.uint8)
+    adv = adv.astype(np.uint8)
+    perturbation = adv - original
+
+    m = mse(original, adv)
+    s = ssim(original, adv, multichannel=True)
+    #psnr = 20 * log10(225.0 / sqrt(m))
+    try:
+        psnr = 20 * log10(225.0 / sqrt(m))
+    except ZeroDivisionError:
+        psnr = float('inf')
+    # setup the figure
+    fig = plt.figure(figsize=(15, 5))
+    plt.suptitle("psnr: %.5f, SSIM: %.5f" % (psnr, s), fontsize = 20)
+    ax = plt.subplot(1,3,1)
+    ax.set_title("Original")
+    ax.text(0.5,-0.15, "predict: " + names[label] +"\nprobability: " + str(np.amax(prob)), size=15, ha="center", 
+        transform=ax.transAxes)
+    plt.imshow(original)
+    plt.axis("off")
+
+    ax2 = plt.subplot(1,3,2)
+    ax2.set_title("Adversarial ")
+    ax2.text(0.5,-0.15, "predict: " + names[label_adv] + "\nprobability: " + str(np.amax(prob_adv)), size=15, ha="center", 
+        transform=ax2.transAxes)
+    plt.imshow(adv)
+    plt.axis("off")
+
+    ax3 = plt.subplot(1,3,3)
+    ax3.set_title("Perturbation")
+    #print(perturbation)
+    plt.imshow(perturbation)
+    plt.axis("off")
+
+    save_path = path + ".png" 
+    save_path_exist = os.path.exists(save_path)
+    if not save_path_exist:   
+        plt.savefig(save_path, bbox_inches='tight') 
+    else:
+        #print("image already existed")
+        plt.savefig(save_path, bbox_inches='tight')
+    plt.cla()
+    return s, psnr
 
 def perturb_image(xs, img):
     # If this function is passed just one perturbation vector,
@@ -43,22 +101,24 @@ def plot_image(image, label_true=None, class_names=None, label_pred=None):
     plt.grid()
     plt.imshow(image.astype(np.uint8))
 
-    # Show true and predicted classes
-    if label_true is not None and class_names is not None:
-        labels_true_name = class_names[label_true]
-        if label_pred is None:
-            xlabel = "True: " + labels_true_name
-        else:
-            # Name of the predicted class
-            labels_pred_name = class_names[label_pred]
+    # # Show true and predicted classes
+    # if label_true is not None and class_names is not None:
+    #     labels_true_name = class_names[label_true]
+    #     if label_pred is None:
+    #         xlabel = "True: " + labels_true_name
+    #     else:
+    #         # Name of the predicted class
+    #         labels_pred_name = class_names[label_pred]
 
-            xlabel = "True: " + labels_true_name + "\nPredicted: " + labels_pred_name
+    #         xlabel = "True: " + labels_true_name + "\nPredicted: " + labels_pred_name
 
         # Show the class on the x-axis
-        plt.xlabel(xlabel)
+        # plt.xlabel(xlabel)
 
-    plt.xticks([])  # Remove ticks from the plot
-    plt.yticks([])
+    # plt.xticks([])  # Remove ticks from the plot
+    # plt.yticks([])
+    plt.axis("off")
+    plt.savefig("/home/tsm62803/my_code/one-pixel-attack-keras/images/1.png", bbox_inches='tight')
     plt.show()  # Show the plot
 
 
