@@ -109,4 +109,4 @@ data/*.jpg
 
 /.idea/
 
-out
+/out
