@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
-
+from skimage.metrics import structural_similarity as ssim_cal
 import numpy as np
 import pandas as pd
 from keras.datasets import cifar10
 from matplotlib import pyplot as plt
 import pickle
 import tensorflow as tf
+from math import log10, sqrt
 import time
 import os
 # Custom Networks
@@ -95,7 +96,7 @@ class PixelAttacker:
         attack_result = differential_evolution(
             predict_fn, bounds, maxiter=maxiter, popsize=popmul,
             recombination=1, atol=-1, callback=callback_fn, polish=False)
-        print("attack_result", attack_result.x)
+        # print("attack_result", attack_result.x)
         # Calculate some useful statistics to return from this function
         attack_image = helper.perturb_image(attack_result.x, self.x_test[img_id])[0]
         prior_probs = model.predict(np.array([self.x_test[img_id]]))[0]
@@ -110,12 +111,19 @@ class PixelAttacker:
             # plt.axis("off")
             # plt.savefig("/home/tsm62803/my_code/one-pixel-attack-keras/images/original.png", bbox_inches='tight')
             # helper.plot_image(attack_image, actual_class, self.class_names, predicted_class)
-            print(self.x_test[img_id].shape)
-            print(attack_image.shape)
+            # print(self.x_test[img_id].shape)
+            # print(attack_image.shape)
+            m = helper.mse(self.x_test[img_id], attack_image)
+            s = ssim_cal(self.x_test[img_id], attack_image, multichannel=True)
+            #psnr = 20 * log10(225.0 / sqrt(m))
+            try:
+                current_psnr = 20 * log10(225.0 / sqrt(m))
+            except ZeroDivisionError:
+                pass
             global count, ssim, psnr, success_rate, confidence, all_confidence
-            s, p = helper.compare_images(self.x_test[img_id], attack_image, "/home/tsm62803/my_code/one-pixel-attack-keras/images/compare/" + str(count), actual_class, predicted_class, prior_probs, predicted_probs)
+            # helper.compare_images(self.x_test[img_id], attack_image, "/home/tsm62803/my_code/one-pixel-attack-keras/images/compare/" + str(count), actual_class, predicted_class, prior_probs, predicted_probs)
             ssim += s
-            psnr += p
+            psnr += current_psnr
             success_rate += 1
             all_confidence.append(np.amax(predicted_probs))
             confidence += np.amax(predicted_probs)

@@ -66,6 +66,7 @@ def compare_images(original, adv, path, label, label_adv, prob, prob_adv):
         #print("image already existed")
         plt.savefig(save_path, bbox_inches='tight')
     plt.cla()
+    plt.close(fig)
     return s, psnr
 
 def perturb_image(xs, img):
