@@ -108,3 +108,5 @@ networks/models
 data/*.jpg
 
 /.idea/
+
+out
