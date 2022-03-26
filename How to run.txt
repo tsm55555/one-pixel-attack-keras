@@ -1,1 +1,3 @@
+conda activate one-pixel
+
 python attack.py --pixels 1 --samples 2

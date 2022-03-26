@@ -1,0 +1,9 @@
+Successfully loaded resnet
+Evaluating resnet
+Starting attack
+training time:  82759.64863109589
+    model  accuracy  pixels  attack_success_rate
+0  resnet    0.9231       1             0.318817
+avg ssim:  0.9856688078279509
+avg psnr 30.323052088197244
+avg confidence 0.7609794652364791

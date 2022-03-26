@@ -141,7 +141,7 @@ class PixelAttacker:
 
             for pixel_count in pixels:
                 for i, img in enumerate(img_samples):
-                    print(model.name, '- image', img, '-', i + 1, '/', len(img_samples))
+                    # print(model.name, '- image', img, '-', i + 1, '/', len(img_samples))
                     targets = [None] if not targeted else range(10)
 
                     for target in targets:
